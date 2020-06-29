@@ -1,0 +1,74 @@
+##Yutong Liu Course Project
+=======================================
+
+Read data
+```{r}
+activity<-read.csv("activity.csv")
+```
+
+Calculate the total numbers of steps taken per day
+```{r}
+steps_total<-aggregate(activity$steps, by=list(date=activity$date), FUN=sum)
+print(steps_total)
+```
+
+make histogram
+```{r}
+steps_total$x <- as.numeric(steps_total$x)
+steps_total$date <- as.Date(steps_total$date,format="%Y-%m-%d")
+steps_total$datetime <- paste(as.Date(steps_total$date))
+steps_total$Datetime <- as.POSIXct(steps_total$datetime)
+names(steps_total)[2] <- "steps"
+library(ggplot2)
+ggplot(steps_total,aes(x=date,y=steps))+geom_bar(stat="identity")
+```
+
+Calculate and report the mean and median of the total number of steps taken per day
+```{r}
+mean(steps_total$steps,na.rm=TRUE)
+median(steps_total$steps,na.rm=TRUE)
+```
+mean=10766.19
+median=10765
+
+Make a time series plot (i.e. \color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+datetime <- strptime(paste(activity$date, activity$interval, sep=" "), "%Y-%m-%d %OS")
+plot(datetime,activity$steps,type="l",na.rm=TRUE)
+```
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+interval_total<-aggregate(activity$steps, by=list(date=activity$interval), FUN=mean,na.rm=TRUE)
+max(interval_total$x)
+which.max(interval_total$x)
+```
+interval=835 has the maximum value
+
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+```{r}
+colSums(is.na(activity))
+interval_mean<-aggregate(activity$steps, by=list(interval=activity$interval), FUN=mean,na.rm=TRUE)
+imputed_activity <- activity
+for (i in 1:nrow(imputed_activity)){
+        if (is.na(imputed_activity[i,1]))
+                for (j in 1:nrow(interval_mean))
+                        if (imputed_activity[i,3] == interval_mean[j,1])
+                                imputed_activity[i,1] = interval_mean[j,2]
+}
+imputed_activity$date <- as.Date(imputed_activity$date,format="%Y-%m-%d")
+ggplot(imputed_activity,aes(x=date,y=steps))+geom_bar(stat="identity")
+```
+
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+```{r}
+imputed_activity[2]<-as.POSIXct(imputed_activity$date,format="%Y-%m-%d")
+weekday<-imputed_activity[which(weekdays(as.Date(imputed_activity$date, format = "%Y-%m-%d"))
+ %in% c('星期一','星期二', '星期三', '星期四', '星期五')), ]
+weekend<-imputed_activity[which(weekdays(as.Date(imputed_activity$date, format = "%Y-%m-%d"))
+ %in% c('星期六','星期日')), ]
+weekday_datetime <- strptime(paste(weekday$date, weekday$interval, sep=" "), "%Y-%m-%d %M")
+plot(weekday_datetime,weekday$steps,type="l",na.rm=TRUE)
+weekend_datetime <- strptime(paste(weekend$date, weekend$interval, sep=" "), "%Y-%m-%d %M")
+plot(weekend_datetime,weekend$steps,type="l",na.rm=TRUE)
+```
